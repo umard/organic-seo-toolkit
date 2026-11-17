@@ -1,0 +1,63 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Organic SEO Toolkit</title>
+<style>
+:root{--bg:#0b0f14;--panel:#121820;--line:#1f2933;--tx:#e6edf3;--mu:#8b98a5;--ac:#2dd4a7;--hi:#f87171;--md:#fbbf24;--lo:#60a5fa}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 system-ui,sans-serif;display:flex;min-height:100vh}
+nav{width:200px;border-right:1px solid var(--line);padding:18px 12px;flex-shrink:0}nav h1{font-size:15px;margin:0 8px 18px}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--mu);padding:9px 10px;border-radius:8px;cursor:pointer;font:inherit}
+nav button.on{background:var(--panel);color:var(--ac)}main{flex:1;padding:26px;max-width:1000px}
+h2{margin:0 0 4px}p.sub{color:var(--mu);margin:0 0 18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+input,textarea,select{background:var(--bg);border:1px solid var(--line);color:var(--tx);padding:9px 10px;border-radius:8px;font:inherit}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.row input{flex:1;min-width:180px}
+button.p{background:var(--ac);color:#04251c;border:0;padding:9px 16px;border-radius:8px;font-weight:600;cursor:pointer}button.s{background:none;border:1px solid var(--line);color:var(--tx);padding:6px 10px;border-radius:8px;cursor:pointer}
+table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mu);font-weight:500}
+.tag{font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid}.high{color:var(--hi)}.med{color:var(--md)}.low{color:var(--lo)}
+.stats{display:flex;gap:12px;margin-bottom:14px}.stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}.stat b{font-size:26px;display:block}
+.err{color:var(--hi)}.mu{color:var(--mu)}.hide{display:none}details{margin:4px 0}summary{cursor:pointer}
+@media(max-width:700px){body{flex-direction:column}nav{width:auto;display:flex;overflow-x:auto;border:0}nav h1{display:none}}
+</style></head><body>
+<nav><h1>Organic SEO Toolkit</h1>
+<button data-t="audit" class="on">Site audit</button><button data-t="ideas">Keyword ideas</button><button data-t="rank">Rank tracker</button><button data-t="brief">Content brief</button><button data-t="set">Settings</button></nav>
+<main>
+<section id="audit"><h2>Site audit</h2><p class="sub">Crawls your site and lists the on-page problems that hold rankings back.</p>
+<div class="row"><input id="a-d" placeholder="yourdomain.com"><input id="a-n" type="number" value="12" style="max-width:90px;flex:none" title="Pages"><button class="p" onclick="runAudit()">Run audit</button></div><div id="a-o"></div></section>
+<section id="ideas" class="hide"><h2>Keyword ideas</h2><p class="sub">Real searches people type into Google, expanded from a seed. Long-tail phrases come first because they are easier to rank for. No API key needed.</p>
+<div class="row"><input id="k-s" placeholder="e.g. organic dog food"><button class="p" onclick="runIdeas()">Find ideas</button></div><div id="k-o"></div></section>
+<section id="rank" class="hide"><h2>Rank tracker</h2><p class="sub">Track where your domain ranks on Google for each keyword. Needs a SERP API key (Settings).</p>
+<div class="card"><div class="row"><input id="r-d" placeholder="yourdomain.com"><select id="r-c"><option value="us">US</option><option value="gb">UK</option><option value="in">India</option><option value="ca">Canada</option><option value="au">Australia</option><option value="de">Germany</option></select></div>
+<textarea id="r-k" rows="4" style="width:100%" placeholder="One keyword per line"></textarea><div class="row" style="margin-top:10px"><button class="p" onclick="addProject()">Add to tracker</button></div></div><div id="r-o"></div></section>
+<section id="brief" class="hide"><h2>Content brief</h2><p class="sub">See what the top-ranking pages cover for a keyword, then write something more complete. Needs a SERP API key.</p>
+<div class="row"><input id="b-k" placeholder="keyword to write about"><button class="p" onclick="runBrief()">Build brief</button></div><div id="b-o"></div></section>
+<section id="set" class="hide"><h2>Settings</h2><p class="sub">Rank tracking and briefs use a SERP API. Create a free key at serper.dev and paste it here. It is stored only in this browser and sent only to the SERP provider.</p>
+<div class="row"><input id="s-k" type="password" placeholder="Serper API key"><button class="p" onclick="saveKey()">Save</button></div><div id="s-o" class="mu"></div></section>
+</main>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const api=async(p,b)=>{const r=await fetch('/api/'+p,b?{method:'POST',body:JSON.stringify(b)}:{});const j=await r.json();if(!r.ok)throw new Error(j.error);return j};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('main section').forEach(s=>s.classList.toggle('hide',s.id!==b.dataset.t));if(b.dataset.t==='rank')loadProjects();if(b.dataset.t==='set')loadSet()});
+const busy=(id,m)=>$(id).innerHTML='<p class="mu">'+m+'</p>',fail=(id,e)=>$(id).innerHTML='<p class="err">'+esc(e.message)+'</p>';
+async function runAudit(){busy('a-o','Crawling… this can take a minute.');try{const r=await api('audit',{domain:$('a-d').value,pages:$('a-n').value});
+$('a-o').innerHTML=`<div class="stats"><div class="stat"><b>${r.score}</b>Health score</div><div class="stat"><b class="high">${r.high}</b>High</div><div class="stat"><b class="med">${r.med}</b>Medium</div><div class="stat"><b class="low">${r.low}</b>Low</div></div>`+
+(r.site.length?`<div class="card"><b>Site-wide</b>${r.site.map(i=>`<div><span class="${i.sev}">●</span> ${esc(i.msg)}</div>`).join('')}</div>`:'')+
+`<div class="card"><table><tr><th>Page</th><th>Issues</th></tr>${r.pages.map(p=>`<tr><td><a href="${esc(p.url)}" target="_blank" style="color:var(--ac)">${esc(p.url.replace(r.origin,'')||'/')}</a><div class="mu">${p.status} · ${p.words} words · ${p.ms}ms</div></td><td>${p.issues.length?p.issues.map(i=>`<div><span class="${i.sev}">●</span> ${esc(i.msg)}</div>`).join(''):'<span class="mu">No issues</span>'}</td></tr>`).join('')}</table></div>`}catch(e){fail('a-o',e)}}
+async function runIdeas(){busy('k-o','Collecting suggestions…');try{const r=await api('ideas',{seed:$('k-s').value});
+$('k-o').innerHTML=`<div class="card"><p class="mu">${r.ideas.length} ideas</p><table><tr><th>Keyword</th><th>Type</th><th>Words</th></tr>${r.ideas.map(i=>`<tr><td>${esc(i.keyword)}</td><td><span class="tag">${i.type}</span></td><td>${i.words}</td></tr>`).join('')}</table></div>`}catch(e){fail('k-o',e)}}
+const LS={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const KEY=()=>LS.get('serpKey','');
+function addProject(){const domain=$('r-d').value.trim().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'').toLowerCase();if(!domain)return fail('r-o',new Error('Enter a domain'));
+const terms=[...new Set($('r-k').value.split('\n').map(s=>s.trim()).filter(Boolean))];const l=LS.get('projects',[]);let p=l.find(x=>x.domain===domain);if(!p){p={id:Date.now().toString(36),domain,country:$('r-c').value,keywords:[]};l.push(p)}
+terms.forEach(t=>!p.keywords.some(k=>k.term===t)&&p.keywords.push({term:t,history:[]}));LS.set('projects',l);$('r-k').value='';loadProjects()}
+function loadProjects(){const l=LS.get('projects',[]);$('r-o').innerHTML=l.map(p=>`<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(p.domain)} <span class="mu">(${p.country.toUpperCase()})</span></b><span><button class="s" onclick="check('${p.id}',this)">Check ranks now</button> <button class="s" onclick="del('${p.id}')">Delete</button></span></div>
+<table><tr><th>Keyword</th><th>Position</th><th>Change</th><th>Ranking URL</th></tr>${p.keywords.map(k=>{const h=k.history||[],c=h.at(-1),pr=h.at(-2);const pos=c?c.position:null;const d=c&&pr&&c.position&&pr.position?pr.position-c.position:null;
+return`<tr><td>${esc(k.term)}${k.error?`<div class="err">${esc(k.error)}</div>`:''}</td><td>${c?(pos??'<span class="mu">not in top 100</span>'):'<span class="mu">not checked</span>'}</td><td>${d===null?'':d>0?'<span style="color:var(--ac)">&#9650; '+d+'</span>':d<0?'<span class="high">&#9660; '+-d+'</span>':'-'}</td><td class="mu">${esc((k.url||'').replace(/^https?:\/\//,''))}</td></tr>`}).join('')}</table>${p.lastChecked?`<p class="mu">Last checked ${new Date(p.lastChecked).toLocaleString()}</p>`:''}</div>`).join('')||'<p class="mu">No projects yet.</p>'}
+async function check(id,b){if(!KEY()){alert('Add your SERP API key in Settings first.');return}b.textContent='Checking...';b.disabled=true;const l=LS.get('projects',[]);const p=l.find(x=>x.id===id);const ts=new Date().toISOString();
+for(const k of p.keywords){try{const r=await api('rank',{apiKey:KEY(),domain:p.domain,keyword:k.term,country:p.country});k.history=[...(k.history||[]),{ts,position:r.position}].slice(-90);k.url=r.url||k.url;k.error=null}catch(e){k.error=e.message}}
+p.lastChecked=ts;LS.set('projects',l);loadProjects()}
+function del(id){if(confirm('Delete this project?')){LS.set('projects',LS.get('projects',[]).filter(x=>x.id!==id));loadProjects()}}
+async function runBrief(){busy('b-o','Reading the top results…');try{const r=await api('brief',{apiKey:KEY(),keyword:$('b-k').value});
+$('b-o').innerHTML=`<div class="stats"><div class="stat"><b>${r.targetWords??'–'}</b>Suggested word count</div><div class="stat"><b>${r.competitors.length}</b>Pages analysed</div></div>
+<div class="card"><b>Headings most competitors use</b><ul>${r.commonHeadings.map(h=>`<li>${esc(h.heading)} <span class="mu">(${h.pages} pages)</span></li>`).join('')||'<li class="mu">None repeated</li>'}</ul></div>
+<div class="card"><b>Questions to answer</b><ul>${r.questions.map(q=>`<li>${esc(q)}</li>`).join('')||'<li class="mu">None found</li>'}</ul><b>Related searches</b><p>${r.related.map(esc).join(' · ')}</p></div>
+<div class="card"><b>Top results</b>${r.competitors.map(c=>`<details><summary>${esc(c.host)} <span class="mu">· ${c.words} words</span></summary><div class="mu">${esc(c.title)}</div><ul>${c.h2.map(h=>`<li>${esc(h)}</li>`).join('')}</ul></details>`).join('')}</div>`}catch(e){fail('b-o',e)}}
+function loadSet(){$('s-o').textContent=KEY()?'A key is saved in this browser.':'No key saved yet.'}
+function saveKey(){LS.set('serpKey',$('s-k').value.trim());$('s-k').value='';loadSet()}
+</script></body></html>

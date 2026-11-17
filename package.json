@@ -1,0 +1,9 @@
+{
+  "name": "organic-seo-toolkit",
+  "version": "1.0.0",
+  "description": "Local SEO dashboard: site audit, keyword ideas, rank tracker, content briefs.",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "license": "MIT"
+}
